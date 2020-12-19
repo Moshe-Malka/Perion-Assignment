@@ -1,0 +1,24 @@
+Question:
+Describe how you would manage the queue of log files?
+How would you prevent loading the same file more than once?
+How do you make sure your process is resilient to failures
+and at the same time manages to process all files?
+
+
+Answer:
+i would have a queue hold messages of all incoming files (events).
+i would tha assign a unique id to each file and log the progress in a suitable db (e.g. DynamoDB),
+the key would be the file name so that this file would not be processed twice.
+each time the processor code will run it will first check if this filename is in the DB.
+when using NoSQL and we are trying to get the key, it is a very quick interaction.
+
+the process should be devided into microservices each handelling one aspect of the program.
+first microservice will be the queue notifier and file logger (in the DB).
+second microservice would be the dispatcher, which will launch microservices according to the workload.
+third microservice would be the worker, that would take a single file and process it,
+outputing the results to the desired location (S3?).
+in case the worker failes for some reason he can return the message to the dispatcher, which would return it to the queue.
+the queue could have a retry mechanism, which will give X attempts for each file,
+before dumping the message into a dead letter queue.
+the DLQ could be scanned every X minutes to check for messages
+and if there are any - send a message to the developer (via Slack?).
